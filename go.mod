@@ -2,7 +2,12 @@ module Adesubomi/backend-2-challenge-golang
 
 go 1.18
 
-require github.com/gofiber/fiber/v2 v2.32.0
+require (
+	github.com/gofiber/fiber/v2 v2.32.0
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
+	gorm.io/driver/mysql v1.3.3
+	gorm.io/gorm v1.23.4
+)
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
@@ -14,6 +19,4 @@ require (
 	github.com/valyala/fasthttp v1.35.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
-	gorm.io/driver/mysql v1.3.3 // indirect
-	gorm.io/gorm v1.23.4 // indirect
 )
