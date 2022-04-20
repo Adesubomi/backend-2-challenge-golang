@@ -2,6 +2,7 @@ package user
 
 import (
 	"Adesubomi/backend-2-challenge-golang/pkg"
+	"errors"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,11 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-var db *gorm.DB
+var db *gorm.DB = bootDatabase()
 
 type User struct {
-	Username *string `gorm:"primaryKey;" json:"username"`
-	Password *string `gorm:"type:varchar(191);not null" json:"password"`
+	Username string `gorm:"primaryKey" json:"username"`
+	Password string `gorm:"type:varchar(191);not null" json:"password"`
 }
 
 func bootDatabase() *gorm.DB {
@@ -26,32 +27,29 @@ func bootDatabase() *gorm.DB {
 		Password: "",
 	}
 
-	db, err := config.Connect()
+	db, err := pkg.DBConnect(config)
 
 	if err != nil {
 		panic(err)
 	}
 
 	db.AutoMigrate(&User{})
-	db.DB()
 	return db
 }
 
 func registerUser(c *fiber.Ctx) error {
 
-	type UserData struct {
-		Identity string `json:"identity"`
-		Password string `json:"password"`
-	}
-
-	var ud UserData
-	if err := c.BodyParser(&ud); err != nil {
+	var uData User
+	if err := c.BodyParser(&uData); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(
-			fiber.Map{"message": "Unable to create new user"},
+			fiber.Map{
+				"message": "Unable to create new user",
+				"error":   err,
+			},
 		)
 	}
 
-	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(ud.Password), 14)
+	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(string(uData.Password)), 14)
 
 	if err != nil {
 		return c.Status(500).JSON(
@@ -59,9 +57,9 @@ func registerUser(c *fiber.Ctx) error {
 		)
 	}
 
-	ud.Password = string(passwordBytes)
+	uData.Password = string(passwordBytes)
 
-	result := db.Create(&ud)
+	result := db.Create(&uData)
 
 	if result.Error != nil {
 		return c.Status(500).JSON(
@@ -74,9 +72,19 @@ func registerUser(c *fiber.Ctx) error {
 	)
 }
 
-func Bootstrap(f *fiber.App) {
-	db = bootDatabase()
+func getUserByUsername(n string) (*User, error) {
+	var user User
 
+	if err := db.Where(&User{Username: n}).Find(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func Bootstrap(f *fiber.App) {
 	f.Post("/login", login)
 	f.Post("/user", registerUser)
 }
