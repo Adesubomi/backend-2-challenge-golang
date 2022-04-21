@@ -3,6 +3,7 @@ package user
 import (
 	"Adesubomi/backend-2-challenge-golang/pkg"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var db *gorm.DB = bootDatabase()
+var db = bootDatabase()
 
 type User struct {
 	Username string `gorm:"primaryKey" json:"username"`
@@ -18,22 +19,18 @@ type User struct {
 }
 
 func bootDatabase() *gorm.DB {
-	// setup the database
-	config := pkg.DatabaseConfig{
-		Host:     "localhost",
-		Port:     "3306",
-		DBName:   "maze-runner",
-		Username: "root",
-		Password: "",
-	}
-
-	db, err := pkg.DBConnect(config)
+	db, err := pkg.DBConnect()
 
 	if err != nil {
 		panic(err)
 	}
 
-	db.AutoMigrate(&User{})
+	migrateErr := db.AutoMigrate(&User{})
+	if migrateErr != nil {
+		fmt.Println("    ?? Auto-migration failed - ", err)
+		return nil
+	}
+
 	return db
 }
 

@@ -7,22 +7,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type DatabaseConfig struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-	DBName   string
-}
+func DBConnect() (*gorm.DB, error) {
 
-func DBConnect(config DatabaseConfig) (*gorm.DB, error) {
+	config := InitConfig()
+
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		config.Username,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.DBName,
+		config.DB.Username,
+		config.DB.Password,
+		config.DB.Host,
+		config.DB.Port,
+		config.DB.DBName,
 	)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
