@@ -1,12 +1,13 @@
 package user
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/jwt/v2"
 	"github.com/golang-jwt/jwt"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginInput struct {
@@ -69,4 +70,15 @@ func login(c *fiber.Ctx) error {
 			},
 		},
 	)
+}
+
+func Protected() fiber.Handler {
+	return jwtware.New(jwtware.Config{
+		SigningKey: []byte{},
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			return ctx.Status(http.StatusUnauthorized).JSON(
+				fiber.Map{"message": "Invalid or expired JWT"},
+			)
+		},
+	})
 }

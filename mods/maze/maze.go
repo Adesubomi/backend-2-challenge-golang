@@ -1,6 +1,7 @@
 package maze
 
 import (
+	"Adesubomi/backend-2-challenge-golang/mods/user"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +26,7 @@ func getMazeSolution(c *fiber.Ctx) error {
 }
 
 func Bootstrap(f *fiber.App) {
-	f.Post("/maze", storeMaze)
-	f.Get("/maze", getMazes)
-	f.Get("/maze/:id/solution", getMazeSolution)
+	f.Post("/maze", user.Protected(), storeMaze)
+	f.Get("/maze", user.Protected(), getMazes)
+	f.Get("/maze/:id/solution", user.Protected(), getMazeSolution)
 }
