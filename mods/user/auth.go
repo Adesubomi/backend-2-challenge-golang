@@ -1,13 +1,13 @@
 package user
 
 import (
+	"encoding/json"
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 	"time"
-
-	"github.com/gofiber/fiber/v2"
-	jwtware "github.com/gofiber/jwt/v2"
-	"github.com/golang-jwt/jwt"
 )
 
 type LoginInput struct {
@@ -32,7 +32,7 @@ func login(c *fiber.Ctx) error {
 		)
 	} else if user == nil {
 		return c.Status(http.StatusBadRequest).JSON(
-			fiber.Map{"message": "User not found"},
+			fiber.Map{"message": "UserModel not found"},
 		)
 	}
 
@@ -47,13 +47,14 @@ func login(c *fiber.Ctx) error {
 		)
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"nbf":      time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
-	})
+	claims := jwt.MapClaims{
+		"user":    user,
+		"expires": time.Now().AddDate(0, 0, 1).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign and get the complete encoded token as a
-	// string using the secret, without a seccret
+	// string using the secret, without a secret
 	tokenString, err := token.SignedString([]byte{})
 
 	if err != nil {
@@ -72,13 +73,48 @@ func login(c *fiber.Ctx) error {
 	)
 }
 
-func Protected() fiber.Handler {
-	return jwtware.New(jwtware.Config{
-		SigningKey: []byte{},
-		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			return ctx.Status(http.StatusUnauthorized).JSON(
-				fiber.Map{"message": "Invalid or expired JWT"},
-			)
-		},
+func Protected(c *fiber.Ctx) error {
+
+	authorization := c.GetReqHeaders()["Authorization"]
+	tParts := strings.Split(authorization, " ")
+
+	if len(tParts) != 2 {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{})
+	}
+
+	tokenString := tParts[1]
+	claims := jwt.MapClaims{}
+
+	_, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte("secret"), nil
 	})
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid Token",
+			"error":   err.Error(),
+		})
+	}
+
+	expiryTime := claims["expires"].(time.Time)
+
+	if expiryTime.Before(time.Now()) {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Token has expired",
+		})
+	}
+
+	jsonBody, err := json.Marshal(claims["user"])
+
+	var user *User
+	if err := json.Unmarshal(jsonBody, &user); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Unable to process your request. Data is malformed",
+			"error":   err.Error(),
+		})
+	}
+
+	c.Locals("user", user)
+
+	return c.Next()
 }

@@ -3,7 +3,6 @@ package user
 import (
 	"Adesubomi/backend-2-challenge-golang/pkg"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,31 +10,15 @@ import (
 	"gorm.io/gorm"
 )
 
-var db = bootDatabase()
+var db *gorm.DB
 
 type User struct {
-	Username string `gorm:"primaryKey" json:"username"`
+	gorm.Model
+	Username string `gorm:"unique" json:"username"`
 	Password string `gorm:"type:varchar(191);not null" json:"password"`
 }
 
-func bootDatabase() *gorm.DB {
-	db, err := pkg.DBConnect()
-
-	if err != nil {
-		panic(err)
-	}
-
-	migrateErr := db.AutoMigrate(&User{})
-	if migrateErr != nil {
-		fmt.Println("    ?? Auto-migration failed - ", err)
-		return nil
-	}
-
-	return db
-}
-
 func registerUser(c *fiber.Ctx) error {
-
 	var uData User
 	if err := c.BodyParser(&uData); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(
@@ -82,6 +65,7 @@ func getUserByUsername(n string) (*User, error) {
 }
 
 func Bootstrap(f *fiber.App) {
+	db = pkg.GetDatabaseConnection(User{})
 	f.Post("/login", login)
 	f.Post("/user", registerUser)
 }

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func DBConnect() (*gorm.DB, error) {
+func dbConnect() (*gorm.DB, error) {
 
 	config := InitConfig()
 
@@ -23,4 +23,20 @@ func DBConnect() (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	return db, err
+}
+
+func GetDatabaseConnection(e interface{}) *gorm.DB {
+	db, err := dbConnect()
+
+	if err != nil {
+		panic(err)
+	}
+
+	migrateErr := db.AutoMigrate(&e)
+	if migrateErr != nil {
+		fmt.Println("    ?? Auto-migration failed - ", err)
+		return nil
+	}
+
+	return db
 }
