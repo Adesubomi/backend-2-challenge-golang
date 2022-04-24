@@ -67,8 +67,7 @@ func getMazeSolution(c *fiber.Ctx) error {
 func Bootstrap(f *fiber.App) {
 	db = pkg.GetDatabaseConnection(Maze{})
 
-	//mazeRouteGroup := f.Group("/maze", user.Protected)
-	f.Post("/maze", storeMaze)
+	f.Post("/maze", user.Protected, storeMaze)
 	f.Get("/maze", user.Protected, getMazes)
-	f.Get("/maze/:id/solution", getMazeSolution)
+	f.Get("/maze/:id/solution", user.Protected, getMazeSolution)
 }
